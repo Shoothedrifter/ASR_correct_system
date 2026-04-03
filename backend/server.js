@@ -53,13 +53,26 @@ server.on('upgrade', (req, socket, head) => {
       }
     )
 
+    // Register the client message listener immediately — do NOT wait for upstream.
+    // The browser sends the config frame as soon as its WebSocket opens, which is
+    // before the upstream TLS handshake completes.  Registering inside upstream
+    // 'open' would silently drop that first frame and ByteDance would never
+    // receive the required init payload ("decode ws" error / close 1006).
+    const earlyQueue = []
+    client.on('message', (data, isBinary) => {
+      if (upstream.readyState === WebSocket.OPEN) {
+        upstream.send(data, { binary: isBinary })
+      } else {
+        earlyQueue.push({ data, isBinary })
+      }
+    })
+
     upstream.on('open', () => {
-      // Forward binary frames from browser → ByteDance
-      client.on('message', (data, isBinary) => {
-        if (upstream.readyState === WebSocket.OPEN) {
-          upstream.send(data, { binary: isBinary })
-        }
-      })
+      // Flush frames that arrived while upstream was still connecting
+      for (const msg of earlyQueue) {
+        upstream.send(msg.data, { binary: msg.isBinary })
+      }
+      earlyQueue.length = 0
     })
 
     // Forward frames from ByteDance → browser

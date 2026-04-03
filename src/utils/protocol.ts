@@ -160,8 +160,11 @@ export function parseServerFrame(data: ArrayBuffer): ParsedServerFrame {
   const hasSeq = (flags & 0x01) !== 0
   const isLast = (flags & 0x02) !== 0
 
+  // ByteDance SERVER_ERROR_RESPONSE (0x0f) frames always carry a sequence field
+  // even when the flags bit-0 is not set, so we must skip those 4 bytes unconditionally.
+  const skipSeq = hasSeq || msgType === SERVER_ERROR_RESPONSE
   let off = headerSizeBytes
-  if (hasSeq) off += 4                          // skip sequence number
+  if (skipSeq) off += 4                         // skip sequence number
 
   if (off + 4 > u8.length) return { isLast, text: '' }
 
