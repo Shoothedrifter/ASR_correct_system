@@ -1,0 +1,20 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  /* Blue-white gradient fixed to viewport so it doesn't scroll */
+  background: linear-gradient(150deg, #ffffff 0%, #e8f4fd 30%, #dbeafe 65%, #e0f2fe 100%);
+  background-attachment: fixed;
+  color: #1e293b;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+#app {
+  min-height: 100vh;
+}
