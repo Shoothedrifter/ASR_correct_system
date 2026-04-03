@@ -71,7 +71,13 @@ server.on('upgrade', (req, socket, head) => {
 
     upstream.on('close', (code, reason) => {
       console.info(`[proxy] upstream closed  code=${code}`)
-      if (client.readyState === WebSocket.OPEN) client.close(code, reason)
+      if (client.readyState === WebSocket.OPEN) {
+        // 1004 / 1005 / 1006 are reserved codes that cannot be sent in a close frame.
+        // Substitute 1011 (internal error) so ws.close() doesn't throw and crash the process.
+        const UNSENDABLE = new Set([1004, 1005, 1006])
+        const safeCode = (!UNSENDABLE.has(code) && code >= 1000) ? code : 1011
+        client.close(safeCode, reason)
+      }
     })
 
     upstream.on('error', (err) => {

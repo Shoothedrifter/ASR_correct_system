@@ -182,9 +182,27 @@ export function parseServerFrame(data: ArrayBuffer): ParsedServerFrame {
 
   // Handle server error frame
   if (msgType === SERVER_ERROR_RESPONSE) {
-    const msg = new TextDecoder().decode(payload)
-    console.error('[ASR] server error frame:', msg)
-    return { isLast: true, text: '', errorMessage: msg }
+    // Log raw header bytes to help diagnose protocol-level errors
+    const headerHex = Array.from(u8.slice(0, Math.min(32, u8.length)))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join(' ')
+    console.error(`[ASR] server error frame  header=${headerHex}  payloadSize=${payloadSize}`)
+
+    if (payloadSize === 0) {
+      return { isLast: true, text: '', errorMessage: `protocol error (empty payload, msgType=0x${msgType.toString(16)})` }
+    }
+
+    // Try JSON first (ByteDance sometimes sends {"code":N,"message":"..."} in error frames)
+    const text = new TextDecoder().decode(payload)
+    try {
+      const json = JSON.parse(text) as { code?: number; message?: string }
+      const errorMessage = json.message || `error code ${json.code}`
+      console.error('[ASR] server error frame (JSON):', json)
+      return { isLast: true, text: '', errorCode: json.code, errorMessage }
+    } catch {
+      console.error('[ASR] server error frame (text):', text)
+      return { isLast: true, text: '', errorMessage: text || 'unknown server error' }
+    }
   }
 
   // Deserialize JSON
