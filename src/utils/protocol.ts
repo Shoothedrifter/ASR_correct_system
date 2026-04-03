@@ -29,7 +29,7 @@ const SERVER_ERROR_RESPONSE = 0x0f      // server error
 
 // Sequence flags (lower nibble of header byte 1)
 const POS_SEQUENCE      = 0x01          // has sequence, not last
-const NEG_SEQUENCE      = 0x02          // is last, no sequence field
+const _NEG_SEQUENCE     = 0x02          // is last, no sequence field (unused; documents the protocol)
 const NEG_WITH_SEQUENCE = 0x03          // is last, sequence field present (negative value)
 
 // Serialization (upper nibble of header byte 2)
